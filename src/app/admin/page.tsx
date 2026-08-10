@@ -85,23 +85,44 @@ export default function AdminPage() {
 
   async function handleAudioUpload(file: File) {
     setUploadingAudio(true);
-    setStatusMessage("Uploading audio file to Cloudinary...");
+    setStatusMessage("Uploading audio file directly to Cloudinary...");
     try {
+      const sigRes = await fetch("/api/upload/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "music/audio" }),
+      });
+      const sigData = await sigRes.json();
+
+      if (!sigData.signature) {
+        throw new Error(sigData.error || "Failed to generate upload signature");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload/audio", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) {
-        setAudioUrl(data.secure_url);
+      formData.append("api_key", sigData.apiKey);
+      formData.append("timestamp", sigData.timestamp.toString());
+      formData.append("signature", sigData.signature);
+      formData.append("folder", sigData.folder);
+
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${sigData.cloudName}/auto/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const cloudData = await cloudRes.json();
+      if (cloudData.secure_url) {
+        setAudioUrl(cloudData.secure_url);
         setStatusMessage("✅ Audio uploaded successfully to Cloudinary!");
       } else {
-        setStatusMessage(`❌ Audio upload error: ${data.error || "Failed"}`);
+        setStatusMessage(`❌ Audio upload error: ${cloudData.error?.message || "Failed"}`);
       }
-    } catch {
-      setStatusMessage("❌ Audio upload failed.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Audio upload failed.";
+      setStatusMessage(`❌ Audio upload failed: ${msg}`);
     } finally {
       setUploadingAudio(false);
     }
@@ -109,23 +130,44 @@ export default function AdminPage() {
 
   async function handleCoverUpload(file: File) {
     setUploadingCover(true);
-    setStatusMessage("Uploading thumbnail image to Cloudinary...");
+    setStatusMessage("Uploading thumbnail image directly to Cloudinary...");
     try {
+      const sigRes = await fetch("/api/upload/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "music/covers" }),
+      });
+      const sigData = await sigRes.json();
+
+      if (!sigData.signature) {
+        throw new Error(sigData.error || "Failed to generate upload signature");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload/cover", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) {
-        setCoverUrl(data.secure_url);
+      formData.append("api_key", sigData.apiKey);
+      formData.append("timestamp", sigData.timestamp.toString());
+      formData.append("signature", sigData.signature);
+      formData.append("folder", sigData.folder);
+
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${sigData.cloudName}/auto/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const cloudData = await cloudRes.json();
+      if (cloudData.secure_url) {
+        setCoverUrl(cloudData.secure_url);
         setStatusMessage("✅ Cover thumbnail uploaded successfully to Cloudinary!");
       } else {
-        setStatusMessage(`❌ Cover upload error: ${data.error || "Failed"}`);
+        setStatusMessage(`❌ Cover upload error: ${cloudData.error?.message || "Failed"}`);
       }
-    } catch {
-      setStatusMessage("❌ Cover thumbnail upload failed.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Cover thumbnail upload failed.";
+      setStatusMessage(`❌ Cover thumbnail upload failed: ${msg}`);
     } finally {
       setUploadingCover(false);
     }

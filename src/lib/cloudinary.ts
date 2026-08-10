@@ -26,6 +26,31 @@ export type UploadResult = {
   bytes?: number;
 };
 
+export function generateSignature(folder: string): {
+  signature: string;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
+  folder: string;
+} {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+  const paramsToSign = {
+    folder,
+    timestamp,
+  };
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    process.env.CLOUDINARY_API_SECRET!
+  );
+  return {
+    signature,
+    timestamp,
+    apiKey: process.env.CLOUDINARY_API_KEY!,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+    folder,
+  };
+}
+
 export async function uploadBuffer(
   buffer: Buffer,
   folder: string,
