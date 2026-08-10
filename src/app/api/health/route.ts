@@ -1,13 +1,17 @@
-import { db } from "@/db";
-import { sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await db.execute(sql`select 1`);
-    return Response.json({ ok: true });
-  } catch {
-    return Response.json({ ok: false }, { status: 500 });
+    const conn = await connectToDatabase();
+    if (conn) {
+      return NextResponse.json({ ok: true, database: "mongodb" });
+    }
+    return NextResponse.json({ ok: false, message: "Database not connected" }, { status: 500 });
+  } catch (error: unknown) {
+    const errMessage = error instanceof Error ? error.message : "Health check failed";
+    return NextResponse.json({ ok: false, error: errMessage }, { status: 500 });
   }
 }
