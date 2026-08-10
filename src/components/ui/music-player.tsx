@@ -184,12 +184,12 @@ export function MusicPlayer({
         <img
           src={artwork}
           alt={`${track.title} artwork`}
-          className="absolute -top-5 left-0 z-30 h-20 w-20 rounded-xl object-cover shadow-xl shadow-black/40 ring-1 ring-white/20"
+          className="absolute -top-4 left-0 z-30 h-16 w-16 rounded-xl object-cover shadow-xl shadow-black/40 ring-1 ring-white/20 sm:-top-5 sm:h-20 sm:w-20"
         />
       ) : null}
 
       {/* Compact Glass Player Bar */}
-      <div className="relative flex h-[70px] items-center gap-3.5 rounded-xl border border-white/18 bg-black/30 pl-24 pr-5 backdrop-blur-md">
+      <div className="relative flex h-[70px] items-center gap-2.5 rounded-xl border border-white/18 bg-black/30 pl-18 pr-3.5 backdrop-blur-md sm:gap-3.5 sm:pl-24 sm:pr-5">
         {/* Equalizer */}
         <div className="flex h-8 shrink-0 items-end gap-[3.5px]" aria-hidden="true">
           {EQ_BARS.map((bar) => (
