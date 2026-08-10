@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: "धुआँ और धुन — Dhuaan Aur Dhun",
   description:
     "A living digital poster: street-side smoke, old music and people listening together.",
+  icons: {
+    icon: "/main.png",
+    shortcut: "/main.png",
+    apple: "/main.png",
+  },
 };
 
 export const viewport: Viewport = {
