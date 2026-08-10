@@ -7,9 +7,21 @@ import YTMusicButton from "@/components/YTMusicButton";
 
 export default function Home() {
   return (
-    <main className="relative min-h-[100svh] w-full overflow-hidden bg-[#1a0d0b]">
-      {/* Full-coverage responsive background artwork */}
-      <div className="absolute inset-0 z-0">
+    <main className="relative min-h-[100svh] w-full overflow-hidden bg-[#120706]">
+      {/* Background Artwork Layer */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {/* Ambient Blur Fill for Mobile Viewports */}
+        <Image
+          src="/main.png"
+          alt=""
+          fill
+          priority
+          quality={30}
+          sizes="100vw"
+          className="object-cover opacity-50 blur-2xl scale-110 sm:hidden"
+        />
+
+        {/* Full Crisp Artwork Poster (Unclipped on Mobile, Full Cover on Desktop) */}
         <Image
           src="/main.png"
           alt="Main background artwork"
@@ -17,10 +29,11 @@ export default function Home() {
           priority
           quality={100}
           sizes="100vw"
-          className="object-cover object-[50%_30%] sm:object-center"
+          className="object-contain object-center sm:object-cover"
         />
-        {/* Soft mobile vignette gradient for contrast */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
+
+        {/* Subtle Dark Vignette Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 pointer-events-none" />
       </div>
 
       {/* Responsive Header Bar */}
