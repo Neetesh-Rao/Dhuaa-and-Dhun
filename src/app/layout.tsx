@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   description:
     "A living digital poster: street-side smoke, old music and people listening together.",
   icons: {
-    icon: "/main.png",
-    shortcut: "/main.png",
-    apple: "/main.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
