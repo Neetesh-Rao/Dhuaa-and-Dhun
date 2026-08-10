@@ -1,48 +1,64 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function useOnlineUsers() {
-  const [onlineUsers, setOnlineUsers] = useState(0);
-  const [isConnected, setIsConnected] = useState(false);
-  const sourceRef = useRef<EventSource | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState(1);
+  const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
-    let closed = false;
-    let retry: ReturnType<typeof setTimeout> | undefined;
+    // Generate or retrieve persistent tab session ID
+    let sessionId = sessionStorage.getItem("dhuaan_presence_session_id");
+    if (!sessionId) {
+      sessionId = `sess_${Math.random().toString(36).substring(2)}_${Date.now()}`;
+      sessionStorage.setItem("dhuaan_presence_session_id", sessionId);
+    }
 
-    const connect = () => {
-      if (closed) return;
-      const source = new EventSource("/api/presence");
-      sourceRef.current = source;
+    let isSubscribed = true;
 
-      source.onopen = () => setIsConnected(true);
-      source.addEventListener("count", (event) => {
-        try {
-          const payload = JSON.parse((event as MessageEvent<string>).data) as {
-            count: number;
-          };
-          setOnlineUsers(payload.count);
+    async function sendHeartbeat() {
+      try {
+        const res = await fetch("/api/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        });
+        const data = await res.json();
+        if (isSubscribed && data.success && typeof data.count === "number") {
+          setOnlineUsers(data.count);
           setIsConnected(true);
-        } catch {
-          /* ignore malformed frame */
         }
-      });
-      source.onerror = () => {
-        setIsConnected(false);
-        source.close();
-        sourceRef.current = null;
-        if (!closed) retry = setTimeout(connect, 2500);
-      };
+      } catch {
+        if (isSubscribed) setIsConnected(false);
+      }
+    }
+
+    // Initial heartbeat
+    void sendHeartbeat();
+
+    // Heartbeat every 8 seconds
+    const interval = setInterval(() => {
+      void sendHeartbeat();
+    }, 8000);
+
+    // Leave beacon on tab close
+    const handleUnload = () => {
+      try {
+        navigator.sendBeacon(
+          "/api/presence",
+          JSON.stringify({ sessionId, leave: true })
+        );
+      } catch {
+        // Ignore
+      }
     };
 
-    connect();
+    window.addEventListener("beforeunload", handleUnload);
 
     return () => {
-      closed = true;
-      if (retry) clearTimeout(retry);
-      sourceRef.current?.close();
-      sourceRef.current = null;
+      isSubscribed = false;
+      clearInterval(interval);
+      window.removeEventListener("beforeunload", handleUnload);
     };
   }, []);
 

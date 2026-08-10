@@ -1,58 +1,60 @@
-import { addClient, getOnlineCount } from "@/lib/presence";
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { PresenceModel } from "@/models/Presence";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
-export async function GET(request: Request) {
-  const encoder = new TextEncoder();
-  const id = crypto.randomUUID();
+export async function GET() {
+  try {
+    const conn = await connectToDatabase();
+    if (!conn) {
+      return NextResponse.json({ success: true, count: 1 });
+    }
 
-  let cleanup: (() => void) | undefined;
+    const cutoff = new Date(Date.now() - 25000);
+    const count = await PresenceModel.countDocuments({ lastSeen: { $gte: cutoff } });
 
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      const write = (event: string, data: string) => {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`));
-      };
+    return NextResponse.json({
+      success: true,
+      count: Math.max(count, 1),
+    });
+  } catch {
+    return NextResponse.json({ success: true, count: 1 });
+  }
+}
 
-      write("count", JSON.stringify({ count: getOnlineCount() + 1 }));
+export async function POST(req: Request) {
+  try {
+    const conn = await connectToDatabase();
+    if (!conn) {
+      return NextResponse.json({ success: true, count: 1 });
+    }
 
-      cleanup = addClient({
-        id,
-        send: (count) => write("count", JSON.stringify({ count })),
-      });
+    const body = await req.json().catch(() => ({}));
+    const { sessionId, leave } = body;
 
-      const keepAlive = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(": ping\n\n"));
-        } catch {
-          /* closed */
-        }
-      }, 20000);
+    if (!sessionId) {
+      return NextResponse.json({ success: false, error: "Missing sessionId" }, { status: 400 });
+    }
 
-      const close = () => {
-        clearInterval(keepAlive);
-        cleanup?.();
-        try {
-          controller.close();
-        } catch {
-          /* already closed */
-        }
-      };
+    if (leave) {
+      await PresenceModel.deleteOne({ sessionId });
+    } else {
+      await PresenceModel.findOneAndUpdate(
+        { sessionId },
+        { lastSeen: new Date() },
+        { upsert: true, new: true }
+      );
+    }
 
-      request.signal.addEventListener("abort", close);
-    },
-    cancel() {
-      cleanup?.();
-    },
-  });
+    const cutoff = new Date(Date.now() - 25000);
+    const count = await PresenceModel.countDocuments({ lastSeen: { $gte: cutoff } });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
+    return NextResponse.json({
+      success: true,
+      count: Math.max(count, 1),
+    });
+  } catch {
+    return NextResponse.json({ success: true, count: 1 });
+  }
 }
